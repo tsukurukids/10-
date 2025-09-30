@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10秒ジャストゲーム</title>
+    <style>
+        /* 全体のレイアウト設定 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
+            position: relative; /* ボタンの配置のために必要 */
+        }
+
+        /* ゲームコンテナのスタイル */
+        .game-container {
+            text-align: center;
+            background-color: #fff;
+            padding: 40px 60px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .game-container:hover {
+            transform: translateY(-5px);
+        }
+
+        /* タイトルと説明文 */
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+
+        /* メッセージ表示エリア */
+        #message {
+            font-size: 1.5em; /* フォントサイズを小さく変更 */
+            font-weight: bold;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            color: #34495e;
+            transition: color 0.5s ease;
+        }
+
+        /* ボタンの共通スタイル */
+        button {
+            padding: 12px 25px;
+            font-size: 1.2em;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ボタンのホバーエフェクト */
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300%;
+            height: 300%;
+            background: rgba(255, 255, 255, 0.15);
+            transition: all 0.5s ease;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+        
+        button:hover::before {
+            background: rgba(255, 255, 255, 0.25);
+            width: 0;
+            height: 0;
+        }
+
+        /* スタートボタンのスタイル */
+        #start-button {
+            background-color: #2ecc71; /* 緑 */
+        }
+
+        /* ストップボタンのスタイル */
+        #stop-button {
+            background-color: #e74c3c; /* 赤 */
+        }
+
+        /* 無効化されたボタンのスタイル */
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 成功時のメッセージスタイル */
+        .clear {
+            color: #2ecc71 !important;
+            animation: pulse 1s infinite;
+        }
+
+        /* 失敗時のメッセージスタイル */
+        .fail {
+            color: #e74c3c !important;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* 押したらイケナイボタンのスタイル */
+        #danger-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #f39c12; /* オレンジ色 */
+            font-size: 0.8em; /* フォントサイズを小さく */
+            padding: 5px 10px; /* パディングを小さく */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 呪いメッセージのスタイル */
+        #curse-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.5em;
+            display: none; /* 初期状態では非表示 */
+            z-index: 100;
+        }
+
+        /* チートボタンのスタイル */
+        #cheat-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #3498db; /* 青色 */
+            font-size: 0.8em; /* フォントサイズを小さく */
+            padding: 5px 10px; /* パディングを小さく */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* チートタイマーのスタイル */
+        #cheat-timer {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            font-size: 0.8em;
+            color: #2c3e50;
+            display: none; /* 初期状態では非表示 */
+        }
+        
+        /* 記録エリアのスタイル */
+        .records-container {
+            margin-top: 30px;
+            text-align: left;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-height: 200px; /* 高さを固定 */
+            overflow-y: auto; /* スクロール可能にする */
+        }
+        
+        .records-container h2 {
+            font-size: 1.5em;
+            color: #34495e;
+            border-bottom: 2px solid #bdc3c7;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .records-container ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .records-container li {
+            font-size: 1em;
+            color: #555;
+            padding: 5px 0;
+            border-bottom: 1px solid #dfe6e9;
+        }
+        
+        .records-container li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>10秒ジャストゲーム</h1>
+        <p>「スタート」ボタンを押して、10秒ジャストだと思ったら「ストップ」ボタンを押してください。</p>
+        <div id="message"></div>
+        <button id="start-button">スタート</button>
+        <button id="stop-button" disabled>ストップ</button>
+        
+        <div class="records-container">
+            <h2>記録</h2>
+            <ul id="records-list">
+                <li>まだ記録がありません。</li>
+            </ul>
+        </div>
+    </div>
+    
+    <button id="danger-button">押したらイケナイボタン</button>
+    <div id="curse-message"></div>
+    <button id="cheat-button">チート</button>
+    <div id="cheat-timer"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startButton = document.getElementById('start-button');
+            const stopButton = document.getElementById('stop-button');
+            const messageElement = document.getElementById('message');
+            const dangerButton = document.getElementById('danger-button');
+            const curseMessageElement = document.getElementById('curse-message');
+            const cheatButton = document.getElementById('cheat-button');
+            const cheatTimerElement = document.getElementById('cheat-timer');
+            const recordsList = document.getElementById('records-list');
+
+            let startTime;
+            let timerId;
+            let cheatTimerId;
+            let isCheating = false; // チートモードの状態を管理するフラグ
+            const records = []; // 記録を保存する配列
+
+            // 記録リストを更新する関数
+            const updateRecords = (elapsedTime, status) => {
+                // 1秒未満の記録とチート行為の記録は保存しない
+                if (elapsedTime < 1 || isCheating) {
+                    return;
+                }
+                
+                const newRecord = { time: elapsedTime, status: status };
+                records.push(newRecord);
+
+                // 記録が5件を超えたら、最も古い記録を削除
+                if (records.length > 5) {
+                    records.shift();
+                }
+
+                // リストをクリア
+                recordsList.innerHTML = '';
+
+                // 新しい記録をリストに追加
+                records.forEach(record => {
+                    const li = document.createElement('li');
+                    li.textContent = `${record.status}: ${record.time.toFixed(2)}秒`;
+                    recordsList.appendChild(li);
+                });
+            };
+
+            // ゲーム開始ボタンの処理
+            startButton.addEventListener('click', () => {
+                // スタートボタンを押した時間を記録
+                startTime = Date.now();
+                
+                // メッセージを初期化
+                messageElement.textContent = '0.00秒';
+                messageElement.classList.remove('clear', 'fail');
+                curseMessageElement.style.display = 'none'; // 呪いメッセージを非表示に
+
+                // ボタンの状態を切り替え
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                cheatButton.disabled = true; // チートボタンを無効化
+
+                // 0.01秒ごとにタイマーを更新
+                timerId = setInterval(() => {
+                    const currentTime = Date.now();
+                    const elapsedTime = (currentTime - startTime) / 1000;
+                    
+                    if (elapsedTime <= 3) {
+                        messageElement.textContent = `${elapsedTime.toFixed(2)}秒`;
+                    } else {
+                        clearInterval(timerId); // 3秒でタイマーを停止
+                        messageElement.textContent = ''; // 3秒経過後は何も表示しない
+                    }
+                }, 10);
+            });
+
+            // ゲーム停止ボタンの処理
+            stopButton.addEventListener('click', () => {
+                clearInterval(timerId); // ストップボタンが押されたらタイマーを停止
+                clearInterval(cheatTimerId); // チートタイマーも停止
+                
+                // ストップボタンを押した時間を記録
+                const stopTime = Date.now();
+                const elapsedTime = (stopTime - startTime) / 1000; // 経過時間を秒単位に変換
+
+                // ボタンの状態を切り替え
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                cheatButton.disabled = false; // チートボタンを有効化
+                cheatTimerElement.style.display = 'none'; // チートタイマーを非表示に
+
+                // 判定
+                const targetTime = 10;
+                const tolerance = 0.01; // 誤差の許容範囲 (10.00秒から10.01秒未満を許容)
+                
+                // 経過時間を小数点第2位まで表示
+                const formattedTime = elapsedTime.toFixed(2);
+                
+                // 10秒との差を計算
+                const difference = Math.abs(elapsedTime - targetTime).toFixed(2);
+                
+                let gameStatus = '';
+
+                if (isCheating) { // チートボタンが押されていた場合の特殊判定
+                    messageElement.textContent = `あなたは違法行為をしているので逮捕`;
+                    messageElement.classList.add('fail');
+                    isCheating = false; // 判定後、フラグをリセット
+                    gameStatus = 'CHEEEEEET';
+                } else if (elapsedTime >= targetTime && elapsedTime < targetTime + tolerance) {
+                    messageElement.textContent = `奇跡だ！あなたは天才か！？${formattedTime}秒ぴったりに止めるなんて、信じられない！`;
+                    messageElement.classList.add('clear');
+                    gameStatus = 'CLEAR';
+                } else if (elapsedTime < 1) { // 1秒未満の判定
+                    messageElement.textContent = `死刑`;
+                    messageElement.classList.add('fail');
+                    gameStatus = 'FAIL';
+                } else if (elapsedTime > targetTime) {
+                    messageElement.textContent = `10秒過ぎるなんて時間間隔バグってるんじゃない？ｗｗ（${formattedTime}秒）10秒から${difference}秒ズレてるよｗｗ`;
+                    messageElement.classList.add('fail');
+                    gameStatus = 'FAIL';
+                } else {
+                    messageElement.textContent = `残念ｗたった10秒止められないの？w（${formattedTime}秒）だってｗｗ早くね？10秒から${difference}秒ズレてるよｗｗ`;
+                    messageElement.classList.add('fail');
+                    gameStatus = 'FAIL';
+                }
+                
+                // 記録を更新
+                updateRecords(elapsedTime, gameStatus);
+            });
+
+            // 押したらイケナイボタンの処理
+            dangerButton.addEventListener('click', () => {
+                if (isCheating) {
+                    // チートモードが有効な場合の特別なメッセージ
+                    curseMessageElement.textContent = '二つも悪いことするなんてすごいね！あなたは寿司打３０位とるまで帰さないよ';
+                } else {
+                    // 通常の呪いメッセージ
+                    curseMessageElement.textContent = 'もうあなたはお菓子がもらえない呪いがかかりました';
+                }
+                curseMessageElement.style.display = 'block';
+                setTimeout(() => {
+                    curseMessageElement.style.display = 'none';
+                }, 3000); // 3秒後にメッセージを非表示に
+            });
+
+            // チートボタンの処理
+            cheatButton.addEventListener('click', () => {
+                isCheating = true; // チートモードを有効にする
+                cheatTimerElement.style.display = 'block'; // チートタイマーを表示する
+                startTime = Date.now(); // チートタイマー開始時間をリセット
+                cheatTimerId = setInterval(() => {
+                    const currentTime = Date.now();
+                    const cheatTime = (currentTime - startTime) / 1000;
+                    cheatTimerElement.textContent = `現在: ${cheatTime.toFixed(2)}秒`;
+                }, 10);
+                cheatButton.disabled = true; // 連続で押せないように無効化
+            });
+        });
+    </script>
+</body>
+</html>
